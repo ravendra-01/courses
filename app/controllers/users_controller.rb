@@ -37,6 +37,18 @@ class UsersController < ApplicationController
   # PATCH/PUT /users/1 or /users/1.json
   def update
     respond_to do |format|
+      if @user.kind != user_params[:kind] && user_params[:kind] != "student_teacher"
+        case @user.kind
+        when "student"
+          @user.errors.add(:base, "Kind can not be teacher because is studying in at least one program") if @user.enrollments.any?
+        when "teacher"
+          @user.errors.add(:base, "Kind can not be student because is teaching in at least one program") if Enrollment.where(teacher_id: @user.id).any?
+        end
+        if @user.errors.any?
+          return render :edit, status: :unprocessable_entity
+        end
+      end
+      
       if @user.update(user_params)
         format.html { redirect_to user_url(@user), notice: "User was successfully updated." }
         format.json { render :show, status: :ok, location: @user }
